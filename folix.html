@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folix | Script</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0b10;
+      --panel: #12121a;
+      --border: #292936;
+      --text: #f3f3fa;
+      --muted: #9999ad;
+      --accent: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: radial-gradient(ellipse at top, #201733 0%, var(--bg) 48%);
+      color: var(--text);
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    main { width: min(680px, 100%); }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 26px; font-weight: 800; letter-spacing: .3px;
+    }
+    .logo {
+      display: grid; place-items: center; width: 36px; height: 36px;
+      border-radius: 11px; color: #fff;
+      background: linear-gradient(135deg, #c4b5fd, #7c3aed);
+      box-shadow: 0 0 28px #8b5cf633;
+    }
+    .eyebrow {
+      color: var(--accent); text-transform: uppercase;
+      letter-spacing: 2px; font-size: 11px; font-weight: 800;
+    }
+    h1 { margin: 8px 0; font-size: clamp(30px, 6vw, 42px); letter-spacing: -1.5px; }
+    .intro { margin: 0 0 24px; color: var(--muted); }
+    .panel {
+      overflow: hidden; border: 1px solid var(--border);
+      border-radius: 16px; background: #111118eF;
+      box-shadow: 0 22px 80px #0005;
+    }
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--border);
+      background: #ffffff04;
+    }
+    .dots { display: flex; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #484858; }
+    .dot:first-child { background: #fb7185; }
+    .dot:nth-child(2) { background: #fbbf24; }
+    .dot:nth-child(3) { background: #34d399; }
+    .filename { margin-left: 10px; color: #c6c6d4; font: 12px ui-monospace, monospace; }
+    .file-left { display: flex; align-items: center; }
+    .tag {
+      border: 1px solid #3a3150; color: #c4b5fd; background: #8b5cf614;
+      padding: 4px 8px; border-radius: 7px; font-size: 11px; font-weight: 700;
+    }
+    pre {
+      margin: 0; padding: 25px 22px; overflow-x: auto;
+      color: #ddd6fe; font: 14px/1.9 ui-monospace, SFMono-Regular, Consolas, monospace;
+      white-space: pre;
+    }
+    .code-key { color: #c4b5fd; }
+    .actions {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; padding: 16px 18px; border-top: 1px solid var(--border);
+    }
+    .hint { color: var(--muted); font-size: 12px; }
+    button {
+      border: 0; border-radius: 10px; padding: 11px 16px;
+      color: #fff; background: #7c3aed; font-weight: 750; cursor: pointer;
+      transition: transform .15s, background .15s;
+    }
+    button:hover { background: #8b5cf6; transform: translateY(-1px); }
+    button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
+    footer { margin-top: 18px; text-align: center; color: #6f6f82; font-size: 12px; }
+    @media (max-width: 480px) {
+      body { padding: 18px; }
+      .actions { align-items: stretch; flex-direction: column; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand"><div class="logo">F</div><span>folix<span style="color:#a78bfa">.</span></span></div>
+    <div class="eyebrow">Script library</div>
+    <h1>Anti-AFK Script</h1>
+    <p class="intro">Copy the snippet below to your clipboard.</p>
+
+    <section class="panel" aria-label="Script code">
+      <div class="panel-head">
+        <div class="file-left">
+          <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <span class="filename">antiafk.lua</span>
+        </div>
+        <span class="tag">LUA</span>
+      </div>
+      <pre><code id="script">loadstring(game:HttpGet("https://zxfolix.github.io/antiafk.lua"))()</code></pre>
+      <div class="actions">
+        <span class="hint" id="status" aria-live="polite">Ready to copy</span>
+        <button id="copyBtn" type="button">Copy Script</button>
+      </div>
+    </section>
+    <footer>Folix · Script snippet</footer>
+  </main>
+
+  <script>
+    const scriptText = 'loadstring(game:HttpGet("https://zxfolix.github.io/antiafk.lua"))()';
+    const copyBtn = document.getElementById('copyBtn');
+    const status = document.getElementById('status');
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(scriptText);
+        copyBtn.textContent = 'Copied ✓';
+        status.textContent = 'Copied to clipboard';
+      } catch {
+        const field = document.createElement('textarea');
+        field.value = scriptText;
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.select();
+        const copied = document.execCommand('copy');
+        field.remove();
+        copyBtn.textContent = copied ? 'Copied ✓' : 'Copy failed';
+        status.textContent = copied ? 'Copied to clipboard' : 'Select the code and copy it manually';
+      }
+      setTimeout(() => { copyBtn.textContent = 'Copy Script'; }, 1800);
+    });
+  </script>
+</body>
+</html>
