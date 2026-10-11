@@ -1,142 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Folix | Script</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #0b0b10;
-      --panel: #12121a;
-      --border: #292936;
-      --text: #f3f3fa;
-      --muted: #9999ad;
-      --accent: #a78bfa;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      background: radial-gradient(ellipse at top, #201733 0%, var(--bg) 48%);
-      color: var(--text);
-      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
-    }
-    main { width: min(680px, 100%); }
-    .brand {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 26px; font-weight: 800; letter-spacing: .3px;
-    }
-    .logo {
-      display: grid; place-items: center; width: 36px; height: 36px;
-      border-radius: 11px; color: #fff;
-      background: linear-gradient(135deg, #c4b5fd, #7c3aed);
-      box-shadow: 0 0 28px #8b5cf633;
-    }
-    .eyebrow {
-      color: var(--accent); text-transform: uppercase;
-      letter-spacing: 2px; font-size: 11px; font-weight: 800;
-    }
-    h1 { margin: 8px 0; font-size: clamp(30px, 6vw, 42px); letter-spacing: -1.5px; }
-    .intro { margin: 0 0 24px; color: var(--muted); }
-    .panel {
-      overflow: hidden; border: 1px solid var(--border);
-      border-radius: 16px; background: #111118eF;
-      box-shadow: 0 22px 80px #0005;
-    }
-    .panel-head {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--border);
-      background: #ffffff04;
-    }
-    .dots { display: flex; gap: 6px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: #484858; }
-    .dot:first-child { background: #fb7185; }
-    .dot:nth-child(2) { background: #fbbf24; }
-    .dot:nth-child(3) { background: #34d399; }
-    .filename { margin-left: 10px; color: #c6c6d4; font: 12px ui-monospace, monospace; }
-    .file-left { display: flex; align-items: center; }
-    .tag {
-      border: 1px solid #3a3150; color: #c4b5fd; background: #8b5cf614;
-      padding: 4px 8px; border-radius: 7px; font-size: 11px; font-weight: 700;
-    }
-    pre {
-      margin: 0; padding: 25px 22px; overflow-x: auto;
-      color: #ddd6fe; font: 14px/1.9 ui-monospace, SFMono-Regular, Consolas, monospace;
-      white-space: pre;
-    }
-    .code-key { color: #c4b5fd; }
-    .actions {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 14px; padding: 16px 18px; border-top: 1px solid var(--border);
-    }
-    .hint { color: var(--muted); font-size: 12px; }
-    button {
-      border: 0; border-radius: 10px; padding: 11px 16px;
-      color: #fff; background: #7c3aed; font-weight: 750; cursor: pointer;
-      transition: transform .15s, background .15s;
-    }
-    button:hover { background: #8b5cf6; transform: translateY(-1px); }
-    button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
-    footer { margin-top: 18px; text-align: center; color: #6f6f82; font-size: 12px; }
-    @media (max-width: 480px) {
-      body { padding: 18px; }
-      .actions { align-items: stretch; flex-direction: column; }
-      button { width: 100%; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luau Lag Reducer Script</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #38bdf8;
+            --btn-bg: #3b82f6;
+            --btn-hover: #2563eb;
+            --code-bg: #090d16;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background-color: #111827;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header h2 {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+        }
+
+        .copy-btn {
+            background-color: var(--btn-bg);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            background-color: var(--btn-hover);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.97);
+        }
+
+        .code-block {
+            background-color: var(--code-bg);
+            padding: 20px;
+            overflow-x: auto;
+            max-height: 500px;
+        }
+
+        pre {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        /* Toast Alert */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
 </head>
 <body>
-  <main>
-    <div class="brand"><div class="logo">F</div><span>folix<span style="color:#a78bfa">.</span></span></div>
-    <div class="eyebrow">Script library</div>
-    <h1>Anti-AFK Script</h1>
-    <p class="intro">Copy the snippet below to your clipboard.</p>
 
-    <section class="panel" aria-label="Script code">
-      <div class="panel-head">
-        <div class="file-left">
-          <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-          <span class="filename">antiafk.lua</span>
+    <div class="container">
+        <div class="header">
+            <h2>Luau Lag Reducer Script</h2>
+            <button class="copy-btn" id="copyBtn">
+                <span>Copy Code</span>
+            </button>
         </div>
-        <span class="tag">LUA</span>
-      </div>
-      <pre><code id="script">loadstring(game:HttpGet("https://zxfolix.github.io/antiafk.lua"))()</code></pre>
-      <div class="actions">
-        <span class="hint" id="status" aria-live="polite">Ready to copy</span>
-        <button id="copyBtn" type="button">Copy Script</button>
-      </div>
-    </section>
-    <footer>Folix · Script snippet</footer>
-  </main>
+        <div class="code-block">
+<pre><code id="luaScript">-- Advanced Performance Booster / Lag Reducer Script
+local workspace = game:GetService("Workspace")
+local lighting = game:GetService("Lighting")
+local terrain = workspace:FindFirstChildOfClass("Terrain")
 
-  <script>
-    const scriptText = 'loadstring(game:HttpGet("https://zxfolix.github.io/antiafk.lua"))()';
-    const copyBtn = document.getElementById('copyBtn');
-    const status = document.getElementById('status');
+-- 1. Strip visual elements from existing objects
+for _, descendant in ipairs(workspace:GetDescendants()) do
+    if descendant:IsA("Texture") or descendant:IsA("Decal") then
+        descendant:Destroy()
+    elseif descendant:IsA("BasePart") then
+        descendant.Material = Enum.Material.SmoothPlastic
+        descendant.Reflectance = 0
+        descendant.CastShadow = false
+    elseif descendant:IsA("MeshPart") then
+        descendant.TextureID = ""
+        descendant.Material = Enum.Material.SmoothPlastic
+        descendant.Reflectance = 0
+        descendant.CastShadow = false
+    elseif descendant:IsA("ParticleEmitter") or descendant:IsA("Fire") or descendant:IsA("Smoke") or descendant:IsA("Sparkles") or descendant:IsA("Trail") or descendant:IsA("Beam") then
+        descendant.Enabled = false
+    elseif descendant:IsA("Explosion") then
+        descendant.Visible = false
+    elseif descendant:IsA("Clothing") or descendant:IsA("ShirtGraphic") then
+        descendant:Destroy()
+    end
+end
 
-    copyBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(scriptText);
-        copyBtn.textContent = 'Copied ✓';
-        status.textContent = 'Copied to clipboard';
-      } catch {
-        const field = document.createElement('textarea');
-        field.value = scriptText;
-        field.style.position = 'fixed';
-        field.style.opacity = '0';
-        document.body.appendChild(field);
-        field.select();
-        const copied = document.execCommand('copy');
-        field.remove();
-        copyBtn.textContent = copied ? 'Copied ✓' : 'Copy failed';
-        status.textContent = copied ? 'Copied to clipboard' : 'Select the code and copy it manually';
-      }
-      setTimeout(() => { copyBtn.textContent = 'Copy Script'; }, 1800);
-    });
-  </script>
+-- 2. Automatically apply optimizations to newly spawned instances
+workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Texture") or descendant:IsA("Decal") then
+        descendant:Destroy()
+    elseif descendant:IsA("BasePart") then
+        descendant.Material = Enum.Material.SmoothPlastic
+        descendant.Reflectance = 0
+        descendant.CastShadow = false
+    elseif descendant:IsA("MeshPart") then
+        descendant.TextureID = ""
+        descendant.Material = Enum.Material.SmoothPlastic
+        descendant.Reflectance = 0
+        descendant.CastShadow = false
+    elseif descendant:IsA("ParticleEmitter") or descendant:IsA("Fire") or descendant:IsA("Smoke") or descendant:IsA("Sparkles") or descendant:IsA("Trail") or descendant:IsA("Beam") then
+        descendant.Enabled = false
+    end
+end)
+
+-- 3. Lower Terrain visual quality
+if terrain then
+    terrain.WaterWaveSize = 0
+    terrain.WaterWaveSpeed = 0
+    terrain.WaterReflectance = 0
+    terrain.WaterTransparency = 0
+    sethiddenproperty(terrain, "Decoration", false)
+end
+
+-- 4. Strip lighting effects & disable shadows
+pcall(function()
+    lighting.GlobalShadows = false
+    lighting.FogEnd = 9e9
+    lighting.Brightness = 1
+    
+    for _, child in ipairs(lighting:GetChildren()) do
+        if child:IsA("PostEffect") or child:IsA("Atmosphere") or child:IsA("Sky") then
+            child:Destroy()
+        end
+    end
+end)
+
+-- 5. Lower overall rendering budget
+pcall(function()
+    local settings = UserSettings():GetService("UserGameSettings")
+    settings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+end)
+
+print("Advanced lag reducer executed!")</code></pre>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        const copyBtn = document.getElementById('copyBtn');
+        const luaScript = document.getElementById('luaScript');
+        const toast = document.getElementById('toast');
+
+        copyBtn.addEventListener('click', () => {
+            const codeText = luaScript.innerText;
+
+            navigator.clipboard.writeText(codeText).then(() => {
+                // Show notification
+                toast.classList.add('show');
+                copyBtn.querySelector('span').innerText = 'Copied!';
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    copyBtn.querySelector('span').innerText = 'Copy Code';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        });
+    </script>
 </body>
 </html>
