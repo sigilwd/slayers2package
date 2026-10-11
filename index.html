@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Folix Script</title>
+<style>
+:root{color-scheme:dark;--bg:#090910;--panel:#11111c;--border:#28253b;--text:#f4f1ff;--muted:#a7a1bb;--accent:#a855f7;--accent2:#ec4899}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#211034 0%,#0b0912 45%,var(--bg) 78%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;padding:40px 18px}
+main{width:min(100%,1050px);margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.3px;font-size:19px}
+.logo{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 35px #a855f744;font-weight:900}
+.pill{border:1px solid var(--border);color:#c9bddf;background:#ffffff08;border-radius:999px;padding:7px 11px;font-size:12px}
+h1{font-size:clamp(30px,5vw,46px);letter-spacing:-1.8px;margin:22px 0 10px}
+p{color:var(--muted);line-height:1.6;margin:0 0 24px}
+.panel{border:1px solid var(--border);background:#10101aee;border-radius:18px;overflow:hidden;box-shadow:0 25px 90px #0006}
+.panelhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 17px;border-bottom:1px solid var(--border);background:#ffffff04;flex-wrap:wrap}
+.label{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;background:#a855f7;box-shadow:0 0 12px #a855f7}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
+button{font:inherit;font-size:13px;font-weight:750;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;transition:transform .15s,filter .15s}
+button:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.copy{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white}
+.select{background:#242235;color:#e8e2f7;border:1px solid #3b3552}
+.codewrap{position:relative}
+pre{margin:0;padding:22px;overflow:auto;max-height:70vh;white-space:pre;font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;color:#d9d4e8;tab-size:4}
+pre::selection{background:#7541a7;color:white}
+footer{margin-top:17px;color:#817a97;font-size:12px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+@media(max-width:600px){body{padding:24px 12px}.panelhead{align-items:flex-start}pre{font-size:12px;padding:15px}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="brand"><div class="logo">F</div><span>FOLIX <span style="color:#c084fc">/</span> SCRIPTS</span></div><span class="pill">LUAU SCRIPT</span></header>
+<h1>Script <span style="background:linear-gradient(90deg,#c084fc,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent">Viewer</span></h1>
+<p>View or copy the complete script below. Use the copy button to copy all of the text at once.</p>
+<section class="panel">
+<div class="panelhead"><div class="label"><span class="dot"></span> <span>1.txt · Full script</span></div><div class="actions"><button class="select" id="selectBtn">Select all</button><button class="copy" id="copyBtn">Copy script</button></div></div>
+<div class="codewrap"><pre><code id="scriptText">--[=[
+    INTEGRATED SCRIPT: Autofarm + Map Coordinates Teleportation Loop
+    1. Replaced Workspace:GetDescendants() polling loops with event-driven tracking.
+    2. Event-driven chest discovery via DescendantAdded/Removing.
+    3. Integrated BossCenters coordinates list for explicit scouting teleports.
+    4. Anti-Cheat Friendly Idle Wait: Teleports once to boss center, holds position,
+       and waits for respawn instead of endless rapid ping-ponging.
+    5. Updated SkillKeys: Z, X, C, V, B, N, K
+]=]
+
+local Players = game:GetService(&quot;Players&quot;)
+local Workspace = game:GetService(&quot;Workspace&quot;)
+local RunService = game:GetService(&quot;RunService&quot;)
+local UserInputService = game:GetService(&quot;UserInputService&quot;)
+local TweenService = game:GetService(&quot;TweenService&quot;)
+local VirtualInputManager = game:GetService(&quot;VirtualInputManager&quot;)
+local VirtualUser = game:GetService(&quot;VirtualUser&quot;)
+local HttpService = game:GetService(&quot;HttpService&quot;)
+local CoreGui = game:GetService(&quot;CoreGui&quot;)
+
+local LocalPlayer = Players.LocalPlayer
+
+local scriptRunning = true
+local connections = {}
+
+local function connect(signal, fn)
+    local c = signal:Connect(fn)
+    table.insert(connections, c)
+    return c
+end
+
+local CONFIG_FOLDER = &quot;AutoFarm_Configs&quot;
+pcall(function()
+    if isfolder and not isfolder(CONFIG_FOLDER) and makefolder then
+        makefolder(CONFIG_FOLDER)
+    end
+end)
+
+-- Tabula coordinatarum mediarum pro singulis bossibus
+local BossCenters = {
+    [&quot;Giyen&quot;] = Vector3.new(388.8659973144531, 1018, -85.05599975585938),
+    [&quot;Domae&quot;] = Vector3.new(-296.47198486328125, 1350.5, -3451.27294921875),
+    [&quot;Sumari&quot;] = Vector3.new(396.4440002441406, 1018, -620.4030151367188),
+    [&quot;Reaper&quot;] = Vector3.new(98.46800231933594, 1043, -573.9110107421875),
+    [&quot;Yahari&quot;] = Vector3.new(825.677978515625, 1019.2000122070312, -641.3350219726562),
+    [&quot;Flame Trainee&quot;] = Vector3.new(-1128.9019775390625, 1029.0489501953125, 994.4199829101562),
+    [&quot;Insect Trainee&quot;] = Vector3.new(-1395.64404296875, 261.5, 69.22000122070312),
+    [&quot;Reaper Trainee Kuzan&quot;] = Vector3.new(-1219.261962890625, 1373.625, -3034.385986328125),
+    [&quot;Soryu Trainee Goki&quot;] = Vector3.new(-426.9849853515625, 288.8089904785156, 543.27197265625),
+    [&quot;Sound Trainee&quot;] = Vector3.new(192.5, 1349, -2581.31298828125),
+    [&quot;Stone Trainee&quot;] = Vector3.new(2685.18408203125, 1073.5999755859375, -568.7540283203125),
+    [&quot;Tai Chi Trainee Suzume&quot;] = Vector3.new(2360.469970703125, 601.9910278320312, -642.3090209960938),
+    [&quot;Thunder Trainee&quot;] = Vector3.new(2425.506103515625, 1073.6309814453125, -556.7880249023438),
+    [&quot;Water Trainee Sabito&quot;] = Vector3.new(815.3480224609375, 1018.8839721679688, 101.5989990234375),
+    [&quot;Wind Trainee&quot;] = Vector3.new(-941.572998046875, 1381, -2635.568115234375),
+    [&quot;Serpent Trainee&quot;] = Vector3.new(-271.37799072265625, 1292, -1535.7130126953125),
+    [&quot;Datai&quot;] = Vector3.new(-165.5, 1043, -1137.5),
+    [&quot;Gyutai&quot;] = Vector3.new(-266.1180114746094, 1043.237060546875, -1139.7340087890625),
+    [&quot;Zentaro&quot;] = Vector3.new(1332.0909423828125, 821.5, -1017.6370239257812),
+    [&quot;Obari&quot;] = Vector3.new(770.5180053710938, 1121, -1047.0360107421875),
+    [&quot;Rengu&quot;] = Vector3.new(-712.8980102539062, 965, 883.7990112304688),
+    [&quot;Akazo&quot;] = Vector3.new(-1131.9749755859375, 1380.916015625, -1746.56103515625),
+    [&quot;Gyorei&quot;] = Vector3.new(2574.568115234375, 1089, -742.4299926757812),
+    [&quot;Nezura&quot;] = Vector3.new(-1459.5260009765625, 275.95098876953125, 935.5360107421875),
+    [&quot;Tengai&quot;] = Vector3.new(-133.50900268554688, 1349, -2631.3359375),
+    [&quot;Saneri&quot;] = Vector3.new(-379.1080017089844, 1093.531005859375, -422.4209899902344),
+    [&quot;Shinora&quot;] = Vector3.new(-452.6470031738281, 964.4979858398438, 2.124000072479248),
+    [&quot;Enru&quot;] = Vector3.new(821.7830200195312, 800, 543.89599609375),
+    [&quot;Mother Bear&quot;] = Vector3.new(540.5, 1121, -1023.5),
+    [&quot;Kaiden&quot;] = Vector3.new(585.7119750976562, 1146.5469970703125, -1314.886962890625),
+    [&quot;Hoyuzo&quot;] = Vector3.new(746.875, 1001, -1413),
+    [&quot;Zuko&quot;] = Vector3.new(-296.7040100097656, 1224.199951171875, -1022.197021484375),
+    [&quot;Fujiko&quot;] = Vector3.new(-2459.527099609375, 37.86800003051758, 1119.001953125)
+}
+
+local MasterBossList = {}
+for bossName in pairs(BossCenters) do
+    table.insert(MasterBossList, bossName)
+end
+table.sort(MasterBossList)
+
+local LOOT_MODES = {&quot;Off&quot;, &quot;Pickup (No TP)&quot;, &quot;Teleport&quot;}
+
+local Config = {
+    AutoBoss = false,
+    PositionMode = &quot;Underneath&quot;,
+    YOffset = 6,
+    AutoM1 = false,
+    AutoSkills = false,
+    SkillDelay = 0.4,
+    AutoBlock = false,
+    LootMode = &quot;Off&quot;,
+    PickupRange = 50,
+    AntiAFK = false,
+    TargetFPS = 60,
+    FPSCapEnabled = false,
+    ToggleKeybind = Enum.KeyCode.RightShift,
+    SelectedBosses = {},
+    AutoChestEvent = true,
+}
+
+for _, name in ipairs(MasterBossList) do
+    Config.SelectedBosses[name] = false
+end
+
+-- Keybinds matching image: Z, X, C, V, B, N, K
+local SkillKeys = {
+    Enum.KeyCode.Z,
+    Enum.KeyCode.X,
+    Enum.KeyCode.C,
+    Enum.KeyCode.V,
+    Enum.KeyCode.B,
+    Enum.KeyCode.N,
+    Enum.KeyCode.K
+}
+
+local target = { model = nil, root = nil, hum = nil }
+local isLooting = false
+local isChestEventActive = false
+local isPlayerMoving = false
+local setStatus = function() end
+
+local movementKeys = {
+    [Enum.KeyCode.W] = false,
+    [Enum.KeyCode.A] = false,
+    [Enum.KeyCode.S] = false,
+    [Enum.KeyCode.D] = false,
+}
+
+connect(UserInputService.InputBegan, function(input, gpe)
+    if not gpe and movementKeys[input.KeyCode] ~= nil then
+        movementKeys[input.KeyCode] = true
+        isPlayerMoving = true
+    end
+end)
+
+connect(UserInputService.InputEnded, function(input)
+    if movementKeys[input.KeyCode] ~= nil then
+        movementKeys[input.KeyCode] = false
+        local moving = false
+        for _, pressed in pairs(movementKeys) do
+            if pressed then moving = true break end
+        end
+        isPlayerMoving = moving
+    end
+end)
+
+local function getChar()
+    local char = LocalPlayer.Character
+    if char then
+        local root = char:FindFirstChild(&quot;HumanoidRootPart&quot;)
+        local hum = char:FindFirstChildOfClass(&quot;Humanoid&quot;)
+        if root and hum and hum.Health &gt; 0 then
+            return char, root, hum
+        end
+    end
+    return nil, nil, nil
+end
+
+local function clearTarget()
+    target.model, target.root, target.hum = nil, nil, nil
+end
+
+local function targetValid()
+    return target.model ~= nil
+        and target.model.Parent ~= nil
+        and target.hum ~= nil and target.hum.Health &gt; 0
+        and target.root ~= nil and target.root.Parent ~= nil
+end
+
+local function clean(s)
+    return (s:lower():gsub(&quot;[%s%_]+&quot;, &quot;&quot;))
+end
+
+local cleanBossNames = {}
+for _, name in ipairs(MasterBossList) do
+    cleanBossNames[name] = clean(name)
+end
+
+local function isQuestNPC(model)
+    local nameLower = model.Name:lower()
+    if nameLower:find(&quot;quest&quot;) or nameLower:find(&quot;dialogue&quot;) or nameLower:find(&quot;giver&quot;) or nameLower:find(&quot;talk&quot;) then
+        return true
+    end
+    if model:FindFirstChild(&quot;Quest&quot;) or model:FindFirstChild(&quot;Dialogue&quot;) then
+        return true
+    end
+    return false
+end
+
+local function isBossSelected(model)
+    if isQuestNPC(model) then return false end
+    local cm = clean(model.Name)
+    for bossName, selected in pairs(Config.SelectedBosses) do
+        if selected then
+            local cb = cleanBossNames[bossName] or clean(bossName)
+            if cm == cb or cm:find(cb, 1, true) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local npcCache = {}
+local promptCache = {}
+local knownBossPositions = {}
+local activeWorldChests = {}
+
+local function isIgnoredPrompt(prompt)
+    local parentName = (prompt.Parent and prompt.Parent.Name or &quot;&quot;):lower()
+    local objectText = prompt.ObjectText:lower()
+    local actionText = prompt.ActionText:lower()
+    local combined = parentName .. &quot; &quot; .. objectText .. &quot; &quot; .. actionText
+
+    if combined:find(&quot;soul&quot;) 
+    or combined:find(&quot;lily&quot;) 
+    or combined:find(&quot;spider&quot;) 
+    or combined:find(&quot;boulder&quot;) 
+    or combined:find(&quot;train&quot;) 
+    or combined:find(&quot;push&quot;) 
+    or combined:find(&quot;heavy&quot;) 
+    or combined:find(&quot;talk&quot;) 
+    or combined:find(&quot;dialogue&quot;) then
+        return true
+    end
+
+    return false
+end
+
+local function findRoot(model)
+    return model:FindFirstChild(&quot;HumanoidRootPart&quot;)
+        or model.PrimaryPart
+        or model:FindFirstChild(&quot;Head&quot;)
+        or model:FindFirstChildWhichIsA(&quot;BasePart&quot;)
+end
+
+local function considerHumanoid(hum)
+    local model = hum.Parent
+    if model and model:IsA(&quot;Model&quot;) and not Players:GetPlayerFromCharacter(model) then
+        npcCache[hum] = model
+        if isBossSelected(model) then
+            local r = findRoot(model)
+            if r then
+                knownBossPositions[clean(model.Name)] = r.Position
+            end
+        end
+    end
+end
+
+local function onDescendantAdded(d)
+    if d:IsA(&quot;Humanoid&quot;) then
+        considerHumanoid(d)
+    elseif d:IsA(&quot;ProximityPrompt&quot;) then
+        if not isIgnoredPrompt(d) then
+            promptCache[d] = true
+        end
+    elseif d:IsA(&quot;Model&quot;) and (d.Name:find(&quot;World Events Chest&quot;) or d.Name:find(&quot;WorldEventsChest&quot;)) then
+        activeWorldChests[d] = true
+    end
+end
+
+local function onDescendantRemoving(d)
+    if d:IsA(&quot;Humanoid&quot;) then
+        npcCache[d] = nil
+    elseif d:IsA(&quot;ProximityPrompt&quot;) then
+        promptCache[d] = nil
+    elseif d:IsA(&quot;Model&quot;) then
+        activeWorldChests[d] = nil
+    end
+end
+
+connect(Workspace.DescendantAdded, onDescendantAdded)
+connect(Workspace.DescendantRemoving, onDescendantRemoving)
+
+-- Fast initial indexing in batches
+task.spawn(function()
+    local descendants = Workspace:GetDescendants()
+    for i = 1, #descendants do
+        onDescendantAdded(descendants[i])
+        if i % 400 == 0 then task.wait() end
+    end
+end)
+
+local function firePrompt(prompt)
+    if fireproximityprompt then
+        fireproximityprompt(prompt, 0)
+    else
+        prompt:InputHoldBegin()
+        task.wait(prompt.HoldDuration + 0.01)
+        prompt:InputHoldEnd()
+    end
+end
+
+local function getActiveWorldChest()
+    for chest in pairs(activeWorldChests) do
+        if chest.Parent then return chest end
+    end
+    return nil
+end
+
+-- Priority World Event Chest Handler
+task.spawn(function()
+    while scriptRunning do
+        task.wait(0.3)
+        if Config.AutoChestEvent then
+            local chestModel = getActiveWorldChest()
+            if chestModel then
+                isChestEventActive = true
+                clearTarget()
+                setStatus(&quot;PRIORITY: World Event Chest Found!&quot;)
+
+                local chestRoot = findRoot(chestModel)
+                if chestRoot then
+                    local lastChestPos = chestRoot.Position
+                    local _, root = getChar()
+                    if root then
+                        root.CFrame = chestRoot.CFrame
+                        task.wait(0.15)
+
+                        for prompt in pairs(promptCache) do
+                            if prompt.Enabled and prompt.Parent and prompt.Parent:IsDescendantOf(chestModel) then
+                                firePrompt(prompt)
+                                task.wait(0.1)
+                            end
+                        end
+
+                        local startTime = tick()
+                        while tick() - startTime &lt; 8 and chestModel.Parent do
+                            local _, currentRoot = getChar()
+                            if not currentRoot then break end
+                            local itemFound = false
+                            for prompt in pairs(promptCache) do
+                                if prompt.Enabled and prompt.Parent and prompt.Parent:IsA(&quot;BasePart&quot;) then
+                                    local part = prompt.Parent
+                                    if (part.Position - lastChestPos).Magnitude &lt;= 150 then
+                                        itemFound = true
+                                        currentRoot.CFrame = part.CFrame
+                                        task.wait(0.05)
+                                        firePrompt(prompt)
+                                        task.wait(0.05)
+                                    end
+                                end
+                            end
+                            if not itemFound then task.wait(0.2) end
+                        end
+
+                        setStatus(&quot;Chest despawned: Clearing remaining loot...&quot;)
+                        local sweepStart = tick()
+                        while tick() - sweepStart &lt; 4 do
+                            local _, currentRoot = getChar()
+                            if not currentRoot then break end
+                            local lootFound = false
+                            for prompt in pairs(promptCache) do
+                                if prompt.Enabled and prompt.Parent and prompt.Parent:IsA(&quot;BasePart&quot;) then
+                                    local part = prompt.Parent
+                                    if (part.Position - lastChestPos).Magnitude &lt;= 150 then
+                                        lootFound = true
+                                        currentRoot.CFrame = part.CFrame
+                                        task.wait(0.05)
+                                        firePrompt(prompt)
+                                        task.wait(0.05)
+                                    end
+                                end
+                            end
+                            if not lootFound then break end
+                            task.wait(0.1)
+                        end
+                    end
+                end
+                isChestEventActive = false
+            else
+                isChestEventActive = false
+            end
+        else
+            isChestEventActive = false
+        end
+    end
+end)
+
+-- INTEGRATED TARGET &amp; SCOUTING LOOP (Anti-Cheat Friendly / Idle Wait)
+task.spawn(function()
+    local lastScoutIndex = 1
+
+    while scriptRunning do
+        task.wait(0.3)
+        if Config.AutoBoss and not isChestEventActive then
+            if not targetValid() then
+                clearTarget()
+                local foundTarget = nil
+
+                -- 1. Check if any selected boss is already loaded in workspace
+                for hum, model in pairs(npcCache) do
+                    if hum and hum.Parent == model and hum.Health &gt; 0 and isBossSelected(model) then
+                        local root = findRoot(model)
+                        if root then
+                            foundTarget = { model = model, root = root, hum = hum }
+                            break
+                        end
+                    end
+                end
+
+                if foundTarget then
+                    target.model, target.root, target.hum = foundTarget.model, foundTarget.root, foundTarget.hum
+                    knownBossPositions[clean(target.model.Name)] = target.root.Position
+                else
+                    -- 2. Find selected bosses that have known coordinates
+                    local activeBossList = {}
+                    for bossName, selected in pairs(Config.SelectedBosses) do
+                        if selected and BossCenters[bossName] then
+                            table.insert(activeBossList, bossName)
+                        end
+                    end
+
+                    if #activeBossList &gt; 0 then
+                        -- Pick one boss spot to hang out at instead of swapping endlessly
+                        if lastScoutIndex &gt; #activeBossList then lastScoutIndex = 1 end
+                        local targetBossName = activeBossList[lastScoutIndex]
+                        local centerPos = BossCenters[targetBossName]
+
+                        setStatus(&quot;Chilling at &quot; .. targetBossName .. &quot; spawn point...&quot;)
+
+                        -- Gently hold position in small increments to let anti-cheat settle
+                        local char, root = getChar()
+                        if char and root then
+                            root.CFrame = CFrame.new(centerPos)
+                            root.AssemblyLinearVelocity = Vector3.zero
+                        end
+
+                        -- Wait 10 seconds at this spot checking if a boss spawns before checking another spot
+                        local waitStart = tick()
+                        while tick() - waitStart &lt; 10 do
+                            if not scriptRunning or not Config.AutoBoss or isChestEventActive then break end
+                            
+                            -- Check if target loaded while chilling
+                            for hum, model in pairs(npcCache) do
+                                if hum and hum.Parent == model and hum.Health &gt; 0 and isBossSelected(model) then
+                                    local root = findRoot(model)
+                                    if root then
+                                        foundTarget = { model = model, root = root, hum = hum }
+                                        break
+                                    end
+                                end
+                            end
+
+                            if foundTarget then break end
+                            task.wait(0.5)
+                        end
+
+                        if foundTarget then
+                            target.model, target.root, target.hum = foundTarget.model, foundTarget.root, foundTarget.hum
+                            knownBossPositions[clean(target.model.Name)] = target.root.Position
+                        else
+                            -- Rotate to the next boss spawn point only after waiting 10 full seconds
+                            lastScoutIndex = lastScoutIndex + 1
+                        end
+                    end
+                end
+            end
+
+            if targetValid() then
+                local pct = math.floor(target.hum.Health / math.max(target.hum.MaxHealth, 1) * 100)
+                setStatus((&quot;Locked: %s (%d%% HP)&quot;):format(target.model.Name, pct))
+            end
+        elseif not isChestEventActive then
+            clearTarget()
+            setStatus(&quot;Idle&quot;)
+        end
+    end
+end)
+
+connect(LocalPlayer.CharacterAdded, function(newChar)
+    task.spawn(function()
+        local root = newChar:WaitForChild(&quot;HumanoidRootPart&quot;, 5)
+        if root and Config.AutoBoss and targetValid() and not isChestEventActive and not isPlayerMoving then
+            task.wait(0.2)
+            local p = target.root.Position
+            local y = Config.PositionMode == &quot;Underneath&quot; and -Config.YOffset or Config.YOffset
+            root.CFrame = CFrame.new(p + Vector3.new(0, y, 0), p)
+        end
+    end)
+end)
+
+-- PROXIMITY LOOT LOOP
+task.spawn(function()
+    while scriptRunning do
+        task.wait(0.25)
+        local mode = Config.LootMode
+        if mode ~= &quot;Off&quot; and not isChestEventActive then
+            local _, root = getChar()
+            if root then
+                local range = Config.PickupRange
+                local nearest, nearestPart, nearestDist = nil, nil, math.huge
+                for prompt in pairs(promptCache) do
+                    if prompt.Enabled and prompt.Parent and prompt.Parent:IsA(&quot;BasePart&quot;) then
+                        local part = prompt.Parent
+                        local d = (part.Position - root.Position).Magnitude
+                        local reach = (mode == &quot;Pickup (No TP)&quot;) and math.min(range, prompt.MaxActivationDistance) or range
+                        if d &lt;= reach and d &lt; nearestDist then
+                            nearest, nearestPart, nearestDist = prompt, part, d
+                        end
+                    end
+                end
+
+                if nearest then
+                    if mode == &quot;Teleport&quot; then
+                        isLooting = true
+                        root.CFrame = nearestPart.CFrame
+                        task.wait(0.05)
+                        firePrompt(nearest)
+                        task.wait(0.1)
+                        isLooting = false
+                    else
+                        firePrompt(nearest)
+                    end
+                end
+            end
+        else
+            if not isChestEventActive then isLooting = false end
+        end
+    end
+end)
+
+local function antiAfkPing()
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end
+
+connect(LocalPlayer.Idled, function()
+    if Config.AntiAFK and scriptRunning then antiAfkPing() end
+end)
+
+-- GUI Setup
+local pgui = LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+local GUI_NAME = &quot;AutoFarmGUI&quot;
+
+for _, parent in ipairs({CoreGui, pgui}) do
+    pcall(function()
+        local old = parent:FindFirstChild(GUI_NAME)
+        if old then old:Destroy() end
+    end)
+end
+
+local ScreenGui = Instance.new(&quot;ScreenGui&quot;)
+ScreenGui.Name = GUI_NAME
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local okParent = pcall(function()
+    if gethui then
+        ScreenGui.Parent = gethui()
+    elseif syn and syn.protect_gui then
+        syn.protect_gui(ScreenGui)
+        ScreenGui.Parent = CoreGui
+    else
+        ScreenGui.Parent = pgui
+    end
+end)
+if not okParent or not ScreenGui.Parent then
+    ScreenGui.Parent = pgui
+end
+
+local COLORS = {
+    bg = Color3.fromRGB(22, 23, 29),
+    bar = Color3.fromRGB(16, 17, 22),
+    card = Color3.fromRGB(32, 33, 42),
+    item = Color3.fromRGB(36, 37, 48),
+    field = Color3.fromRGB(20, 21, 28),
+    text = Color3.fromRGB(220, 220, 230),
+    bright = Color3.fromRGB(240, 240, 255),
+    accent = Color3.fromRGB(80, 90, 140),
+    on = Color3.fromRGB(70, 190, 120),
+    off = Color3.fromRGB(70, 70, 85),
+    fill = Color3.fromRGB(100, 130, 240),
+}
+
+local function corner(parent, r)
+    local c = Instance.new(&quot;UICorner&quot;)
+    c.CornerRadius = UDim.new(0, r or 6)
+    c.Parent = parent
+    return c
+end
+
+local function label(parent, text, size, pos, font, textSize, color)
+    local l = Instance.new(&quot;TextLabel&quot;)
+    l.Size = size
+    l.Position = pos
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = color or COLORS.text
+    l.Font = font or Enum.Font.GothamSemibold
+    l.TextSize = textSize or 11
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = parent
+    return l
+end
+
+local function button(parent, text, size, pos, bg, textSize)
+    local b = Instance.new(&quot;TextButton&quot;)
+    b.Size = size
+    b.Position = pos
+    b.BackgroundColor3 = bg
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = textSize or 11
+    b.AutoButtonColor = true
+    b.Parent = parent
+    corner(b, 5)
+    return b
+end
+
+local function textbox(parent, placeholder, text, size, pos)
+    local t = Instance.new(&quot;TextBox&quot;)
+    t.Size = size
+    t.Position = pos
+    t.BackgroundColor3 = COLORS.field
+    t.PlaceholderText = placeholder
+    t.Text = text
+    t.TextColor3 = COLORS.bright
+    t.Font = Enum.Font.Gotham
+    t.TextSize = 11
+    t.ClearTextOnFocus = false
+    t.Parent = parent
+    corner(t, 5)
+    return t
+end
+
+local MainFrame = Instance.new(&quot;Frame&quot;)
+MainFrame.Name = &quot;MainFrame&quot;
+MainFrame.Size = UDim2.new(0, 560, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -240)
+MainFrame.BackgroundColor3 = COLORS.bg
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
+corner(MainFrame, 10)
+
+local stroke = Instance.new(&quot;UIStroke&quot;)
+stroke.Color = Color3.fromRGB(75, 80, 110)
+stroke.Thickness = 1.5
+stroke.Parent = MainFrame
+
+local TopBar = Instance.new(&quot;Frame&quot;)
+TopBar.Size = UDim2.new(1, 0, 0, 42)
+TopBar.BackgroundColor3 = COLORS.bar
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+corner(TopBar, 10)
+
+label(TopBar, &quot;folix&#x27;s vibecoded slop&quot;, UDim2.new(1, -110, 1, 0), UDim2.new(0, 15, 0, 0),
+    Enum.Font.GothamBold, 14, COLORS.bright)
+
+local CloseBtn = button(TopBar, &quot;X&quot;, UDim2.new(0, 30, 0, 30), UDim2.new(1, -35, 0, 6),
+    Color3.fromRGB(220, 50, 50), 14)
+connect(CloseBtn.MouseButton1Click, function() MainFrame.Visible = false end)
+
+do
+    local dragging, dragStart, startPos = false, nil, nil
+    connect(TopBar.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+        end
+    end)
+    connect(UserInputService.InputChanged, function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            MainFrame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    connect(UserInputService.InputEnded, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+local StatusLabel = label(MainFrame, &quot;Idle&quot;, UDim2.new(1, -20, 0, 18), UDim2.new(0, 10, 1, -22),
+    Enum.Font.Gotham, 11, Color3.fromRGB(150, 155, 175))
+setStatus = function(text)
+    if StatusLabel.Parent then StatusLabel.Text = &quot;Status: &quot; .. text end
+end
+
+local TabNavBar = Instance.new(&quot;Frame&quot;)
+TabNavBar.Size = UDim2.new(1, -20, 0, 32)
+TabNavBar.Position = UDim2.new(0, 10, 0, 48)
+TabNavBar.BackgroundColor3 = Color3.fromRGB(28, 29, 37)
+TabNavBar.Parent = MainFrame
+corner(TabNavBar, 6)
+
+local tabLayout = Instance.new(&quot;UIListLayout&quot;)
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Padding = UDim.new(0, 4)
+tabLayout.Parent = TabNavBar
+
+local PagesFolder = Instance.new(&quot;Frame&quot;)
+PagesFolder.Size = UDim2.new(1, -20, 1, -116)
+PagesFolder.Position = UDim2.new(0, 10, 0, 84)
+PagesFolder.BackgroundTransparency = 1
+PagesFolder.Parent = MainFrame
+
+local pages, tabButtons = {}, {}
+
+local function selectTab(name)
+    for pageName, p in pairs(pages) do
+        p.Visible = (pageName == name)
+    end
+    for btnName, b in pairs(tabButtons) do
+        local active = btnName == name
+        b.BackgroundColor3 = active and COLORS.accent or COLORS.item
+        b.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 185, 200)
+    end
+end
+
+local function createTabPage(name)
+    local page = Instance.new(&quot;Frame&quot;)
+    page.Name = name .. &quot;Page&quot;
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+    page.Parent = PagesFolder
+    pages[name] = page
+
+    local btn = button(TabNavBar, name, UDim2.new(0.24, 0, 1, 0), UDim2.new(), COLORS.item)
+    btn.TextColor3 = Color3.fromRGB(180, 185, 200)
+    tabButtons[name] = btn
+    connect(btn.MouseButton1Click, function() selectTab(name) end)
+    return page
+end
+
+local AutofarmPage = createTabPage(&quot;Autofarm&quot;)
+local SettingsPage = createTabPage(&quot;Settings&quot;)
+local ConfigsPage = createTabPage(&quot;Configs&quot;)
+local KillPage = createTabPage(&quot;Kill Script&quot;)
+selectTab(&quot;Autofarm&quot;)
+
+connect(UserInputService.InputBegan, function(input, gpe)
+    if not gpe and input.KeyCode == Config.ToggleKeybind then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+local uiElements = {}
+local checkboxSetters = {}
+local bossItemFrames = {}
+
+local function createToggle(parent, text, defaultVal, callback)
+    local frame = Instance.new(&quot;Frame&quot;)
+    frame.Size = UDim2.new(1, -10, 0, 36)
+    frame.BackgroundColor3 = COLORS.card
+    frame.Parent = parent
+    corner(frame)
+    label(frame, text, UDim2.new(0.7, 0, 1, 0), UDim2.new(0, 10, 0, 0))
+
+    local btn = button(frame, &quot;&quot;, UDim2.new(0, 45, 0, 22), UDim2.new(1, -50, 0.5, -11), COLORS.off)
+    local enabled = false
+    local function set(val)
+        enabled = val and true or false
+        btn.BackgroundColor3 = enabled and COLORS.on or COLORS.off
+        btn.Text = enabled and &quot;ON&quot; or &quot;OFF&quot;
+        callback(enabled)
+    end
+    set(defaultVal)
+    connect(btn.MouseButton1Click, function() set(not enabled) end)
+    return set
+end
+
+local activeSlider = nil
+connect(UserInputService.InputChanged, function(input)
+    if activeSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        activeSlider(input.Position.X)
+    end
+end)
+connect(UserInputService.InputEnded, function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        activeSlider = nil
+    end
+end)
+
+local function createSlider(parent, text, minVal, maxVal, defaultVal, callback, unit, step)
+    unit = unit or &quot; studs&quot;
+    step = step or 1
+    local frame = Instance.new(&quot;Frame&quot;)
+    frame.Size = UDim2.new(1, -10, 0, 45)
+    frame.BackgroundColor3 = COLORS.card
+    frame.Parent = parent
+    corner(frame)
+
+    local lbl = label(frame, &quot;&quot;, UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 4))
+    local bg = Instance.new(&quot;Frame&quot;)
+    bg.Size = UDim2.new(1, -20, 0, 8)
+    bg.Position = UDim2.new(0, 10, 0, 28)
+    bg.BackgroundColor3 = Color3.fromRGB(50, 52, 65)
+    bg.Parent = frame
+    corner(bg, 4)
+    local fill = Instance.new(&quot;Frame&quot;)
+    fill.BackgroundColor3 = COLORS.fill
+    fill.Parent = bg
+    corner(fill, 4)
+
+    local function set(val)
+        val = math.clamp(tonumber(val) or minVal, minVal, maxVal)
+        val = math.floor(val / step + 0.5) * step
+        fill.Size = UDim2.new((val - minVal) / (maxVal - minVal), 0, 1, 0)
+        lbl.Text = text .. &quot;: &quot; .. tostring(val) .. unit
+        callback(val)
+    end
+    local function fromX(x)
+        local a = math.clamp((x - bg.AbsolutePosition.X) / math.max(bg.AbsoluteSize.X, 1), 0, 1)
+        set(minVal + (maxVal - minVal) * a)
+    end
+    set(defaultVal)
+
+    connect(bg.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            activeSlider = fromX
+            fromX(input.Position.X)
+        end
+    end)
+    return set
+end
+
+local function createModeSelector(parent, text, options, defaultOpt, callback)
+    local frame = Instance.new(&quot;Frame&quot;)
+    frame.Size = UDim2.new(1, -10, 0, 38)
+    frame.BackgroundColor3 = COLORS.card
+    frame.Parent = parent
+    corner(frame)
+    label(frame, text, UDim2.new(0.4, 0, 1, 0), UDim2.new(0, 10, 0, 0))
+
+    local current = defaultOpt
+    local btn = button(frame, current, UDim2.new(0.55, -10, 0, 24), UDim2.new(0.45, 0, 0.5, -12),
+        Color3.fromRGB(60, 65, 85))
+    local function set(opt)
+        for _, o in ipairs(options) do
+            if o == opt then current = opt end
+        end
+        btn.Text = current
+        callback(current)
+    end
+    set(defaultOpt)
+    connect(btn.MouseButton1Click, function()
+        local idx = table.find(options, current) or 1
+        set(options[(idx % #options) + 1])
+    end)
+    return set
+end
+
+local LeftCol = Instance.new(&quot;ScrollingFrame&quot;)
+LeftCol.Size = UDim2.new(0.5, -5, 1, 0)
+LeftCol.BackgroundTransparency = 1
+LeftCol.ScrollBarThickness = 4
+LeftCol.CanvasSize = UDim2.new()
+LeftCol.AutomaticCanvasSize = Enum.AutomaticSize.Y
+LeftCol.Parent = AutofarmPage
+
+local leftList = Instance.new(&quot;UIListLayout&quot;)
+leftList.Padding = UDim.new(0, 8)
+leftList.SortOrder = Enum.SortOrder.LayoutOrder
+leftList.Parent = LeftCol
+
+uiElements.AutoBoss = createToggle(LeftCol, &quot;Auto Boss Farm&quot;, Config.AutoBoss, function(v) Config.AutoBoss = v end)
+uiElements.AutoChestEvent = createToggle(LeftCol, &quot;Auto World Event Chest&quot;, Config.AutoChestEvent, function(v) Config.AutoChestEvent = v end)
+uiElements.PositionMode = createModeSelector(LeftCol, &quot;Position Mode&quot;, {&quot;Underneath&quot;, &quot;Above&quot;}, Config.PositionMode, function(v) Config.PositionMode = v end)
+uiElements.YOffset = createSlider(LeftCol, &quot;Y Offset Distance&quot;, 1, 30, Config.YOffset, function(v) Config.YOffset = v end)
+uiElements.AutoM1 = createToggle(LeftCol, &quot;Auto Weapon Attack&quot;, Config.AutoM1, function(v) Config.AutoM1 = v end)
+uiElements.AutoSkills = createToggle(LeftCol, &quot;Auto Use Skills&quot;, Config.AutoSkills, function(v) Config.AutoSkills = v end)
+uiElements.SkillDelay = createSlider(LeftCol, &quot;Skill Delay&quot;, 0.1, 2, Config.SkillDelay, function(v) Config.SkillDelay = v end, &quot; s&quot;, 0.05)
+uiElements.AutoBlock = createToggle(LeftCol, &quot;Smart Auto Block&quot;, Config.AutoBlock, function(v) Config.AutoBlock = v end)
+uiElements.LootMode = createModeSelector(LeftCol, &quot;Loot Mode&quot;, LOOT_MODES, Config.LootMode, function(v) Config.LootMode = v end)
+uiElements.PickupRange = createSlider(LeftCol, &quot;Loot Range&quot;, 10, 100, Config.PickupRange, function(v) Config.PickupRange = v end)
+
+local RightCol = Instance.new(&quot;Frame&quot;)
+RightCol.Size = UDim2.new(0.5, -5, 1, 0)
+RightCol.Position = UDim2.new(0.5, 5, 0, 0)
+RightCol.BackgroundColor3 = Color3.fromRGB(28, 29, 37)
+RightCol.Parent = AutofarmPage
+corner(RightCol, 8)
+
+label(RightCol, &quot;Target Bosses Selection&quot;, UDim2.new(1, 0, 0, 22), UDim2.new(0, 10, 0, 4), Enum.Font.GothamBold, 12, COLORS.bright)
+local BossSearchBox = textbox(RightCol, &quot;Search boss name...&quot;, &quot;&quot;, UDim2.new(1, -20, 0, 24), UDim2.new(0, 10, 0, 28))
+
+local BtnContainer = Instance.new(&quot;Frame&quot;)
+BtnContainer.Size = UDim2.new(1, -20, 0, 24)
+BtnContainer.Position = UDim2.new(0, 10, 0, 56)
+BtnContainer.BackgroundTransparency = 1
+BtnContainer.Parent = RightCol
+local CheckAllBtn = button(BtnContainer, &quot;Check All&quot;, UDim2.new(0.48, 0, 1, 0), UDim2.new(), Color3.fromRGB(45, 130, 80))
+local ClearAllBtn = button(BtnContainer, &quot;Clear All&quot;, UDim2.new(0.48, 0, 1, 0), UDim2.new(0.52, 0, 0, 0), Color3.fromRGB(160, 50, 50))
+
+local BossScroll = Instance.new(&quot;ScrollingFrame&quot;)
+BossScroll.Size = UDim2.new(1, -20, 1, -86)
+BossScroll.Position = UDim2.new(0, 10, 0, 84)
+BossScroll.BackgroundTransparency = 1
+BossScroll.ScrollBarThickness = 4
+BossScroll.CanvasSize = UDim2.new()
+BossScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+BossScroll.Parent = RightCol
+local bossLayout = Instance.new(&quot;UIListLayout&quot;)
+bossLayout.Padding = UDim.new(0, 4)
+bossLayout.SortOrder = Enum.SortOrder.LayoutOrder
+bossLayout.Parent = BossScroll
+
+for _, bossName in ipairs(MasterBossList) do
+    local item = Instance.new(&quot;Frame&quot;)
+    item.Name = bossName
+    item.Size = UDim2.new(1, -5, 0, 26)
+    item.BackgroundColor3 = COLORS.item
+    item.Parent = BossScroll
+    corner(item, 4)
+    label(item, bossName, UDim2.new(0.75, 0, 1, 0), UDim2.new(0, 8, 0, 0))
+
+    local chk = button(item, &quot;&quot;, UDim2.new(0, 18, 0, 18), UDim2.new(1, -24, 0.5, -9), Color3.fromRGB(60, 60, 75))
+    corner(chk, 4)
+    local function setChecked(val)
+        val = val and true or false
+        Config.SelectedBosses[bossName] = val
+        chk.BackgroundColor3 = val and COLORS.on or Color3.fromRGB(60, 60, 75)
+        chk.Text = val and &quot;✓&quot; or &quot;&quot;
+    end
+    connect(chk.MouseButton1Click, function() setChecked(not Config.SelectedBosses[bossName]) end)
+    checkboxSetters[bossName] = setChecked
+    bossItemFrames[bossName] = item
+end
+
+connect(BossSearchBox:GetPropertyChangedSignal(&quot;Text&quot;), function()
+    local filter = clean(BossSearchBox.Text)
+    for _, name in ipairs(MasterBossList) do
+        bossItemFrames[name].Visible = filter == &quot;&quot; or cleanBossNames[name]:find(filter, 1, true) ~= nil
+    end
+end)
+connect(CheckAllBtn.MouseButton1Click, function()
+    for _, name in ipairs(MasterBossList) do checkboxSetters[name](true) end
+end)
+connect(ClearAllBtn.MouseButton1Click, function()
+    for _, name in ipairs(MasterBossList) do checkboxSetters[name](false) end
+end)
+
+local settingsLayout = Instance.new(&quot;UIListLayout&quot;)
+settingsLayout.Padding = UDim.new(0, 10)
+settingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+settingsLayout.Parent = SettingsPage
+
+uiElements.AntiAFK = createToggle(SettingsPage, &quot;Anti-AFK System&quot;, Config.AntiAFK, function(v) Config.AntiAFK = v end)
+
+local KeybindFrame = Instance.new(&quot;Frame&quot;)
+KeybindFrame.Size = UDim2.new(1, 0, 0, 45)
+KeybindFrame.BackgroundColor3 = COLORS.card
+KeybindFrame.Parent = SettingsPage
+corner(KeybindFrame)
+label(KeybindFrame, &quot;Toggle Window Keybind:&quot;, UDim2.new(0.5, 0, 1, 0), UDim2.new(0, 10, 0, 0), nil, 12)
+local KeybindBtn = button(KeybindFrame, Config.ToggleKeybind.Name, UDim2.new(0.4, 0, 0, 28), UDim2.new(0.55, 0, 0.5, -14), Color3.fromRGB(60, 65, 85))
+
+local listeningForKey = false
+connect(KeybindBtn.MouseButton1Click, function()
+    listeningForKey = true
+    KeybindBtn.Text = &quot;...Press Any Key...&quot;
+    KeybindBtn.BackgroundColor3 = Color3.fromRGB(180, 100, 50)
+end)
+connect(UserInputService.InputBegan, function(input)
+    if listeningForKey and input.UserInputType == Enum.UserInputType.Keyboard then
+        Config.ToggleKeybind = input.KeyCode
+        KeybindBtn.Text = input.KeyCode.Name
+        KeybindBtn.BackgroundColor3 = Color3.fromRGB(60, 65, 85)
+        listeningForKey = false
+    end
+end)
+
+local function setFpsLimit(cap)
+    pcall(function()
+        if setfpscap then setfpscap(cap) end
+    end)
+end
+
+local FpsFrame = Instance.new(&quot;Frame&quot;)
+FpsFrame.Size = UDim2.new(1, 0, 0, 75)
+FpsFrame.BackgroundColor3 = COLORS.card
+FpsFrame.Parent = SettingsPage
+corner(FpsFrame)
+label(FpsFrame, &quot;FPS Limiter / Cap Control&quot;, UDim2.new(1, -20, 0, 20), UDim2.new(0, 10, 0, 4), Enum.Font.GothamBold)
+local FpsInput = textbox(FpsFrame, &quot;Cap (1-999)&quot;, tostring(Config.TargetFPS), UDim2.new(0.3, -5, 0, 28), UDim2.new(0, 10, 0, 30))
+local CapFpsBtn = button(FpsFrame, &quot;Cap FPS&quot;, UDim2.new(0.33, -5, 0, 28), UDim2.new(0.32, 5, 0, 30), Color3.fromRGB(60, 120, 200))
+local UncapFpsBtn = button(FpsFrame, &quot;Uncap FPS&quot;, UDim2.new(0.33, -5, 0, 28), UDim2.new(0.66, 5, 0, 30), Color3.fromRGB(45, 130, 80))
+
+local function applyFps()
+    if Config.FPSCapEnabled then
+        setFpsLimit(Config.TargetFPS)
+        CapFpsBtn.Text = &quot;Capped: &quot; .. tostring(Config.TargetFPS)
+        UncapFpsBtn.Text = &quot;Uncap FPS&quot;
+    else
+        setFpsLimit(0)
+        CapFpsBtn.Text = &quot;Cap FPS&quot;
+        UncapFpsBtn.Text = &quot;Uncapped ✓&quot;
+    end
+end
+
+connect(CapFpsBtn.MouseButton1Click, function()
+    local val = tonumber(FpsInput.Text)
+    if val and val &gt;= 1 then
+        Config.TargetFPS = math.clamp(math.floor(val), 1, 999)
+        Config.FPSCapEnabled = true
+        applyFps()
+    end
+end)
+connect(UncapFpsBtn.MouseButton1Click, function()
+    Config.FPSCapEnabled = false
+    applyFps()
+end)
+
+uiElements.FpsSlider = createSlider(SettingsPage, &quot;FPS Cap Slider&quot;, 1, 240, Config.TargetFPS, function(v)
+    Config.TargetFPS = v
+    FpsInput.Text = tostring(v)
+    if Config.FPSCapEnabled then applyFps() end
+end, &quot; FPS&quot;)
+
+-- CONFIGS PAGE SETUP
+local configsLayout = Instance.new(&quot;UIListLayout&quot;)
+configsLayout.Padding = UDim.new(0, 8)
+configsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+configsLayout.Parent = ConfigsPage
+
+local SaveContainer = Instance.new(&quot;Frame&quot;)
+SaveContainer.Size = UDim2.new(1, 0, 0, 40)
+SaveContainer.BackgroundColor3 = COLORS.card
+SaveContainer.Parent = ConfigsPage
+corner(SaveContainer)
+local ConfigInput = textbox(SaveContainer, &quot;Enter Config Name...&quot;, &quot;&quot;, UDim2.new(0.65, -10, 0, 28), UDim2.new(0, 10, 0.5, -14))
+local SaveConfigBtn = button(SaveContainer, &quot;Save Config&quot;, UDim2.new(0.3, -5, 0, 28), UDim2.new(0.67, 0, 0.5, -14), Color3.fromRGB(45, 130, 80))
+
+local ConfigScroll = Instance.new(&quot;ScrollingFrame&quot;)
+ConfigScroll.Size = UDim2.new(1, 0, 1, -55)
+ConfigScroll.BackgroundTransparency = 1
+ConfigScroll.ScrollBarThickness = 4
+ConfigScroll.CanvasSize = UDim2.new()
+ConfigScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ConfigScroll.Parent = ConfigsPage
+local csLayout = Instance.new(&quot;UIListLayout&quot;)
+csLayout.Padding = UDim.new(0, 6)
+csLayout.SortOrder = Enum.SortOrder.LayoutOrder
+csLayout.Parent = ConfigScroll
+
+local function isType(v, t) return type(v) == t end
+
+local function applyLoadedConfig(loaded)
+    if not isType(loaded, &quot;table&quot;) then return end
+
+    local function bool(key, ui)
+        if isType(loaded[key], &quot;boolean&quot;) and uiElements[ui] then uiElements[ui](loaded[key]) end
+    end
+    local function num(key, ui)
+        if isType(loaded[key], &quot;number&quot;) and uiElements[ui] then uiElements[ui](loaded[key]) end
+    end
+
+    bool(&quot;AutoBoss&quot;, &quot;AutoBoss&quot;)
+    bool(&quot;AutoChestEvent&quot;, &quot;AutoChestEvent&quot;)
+    bool(&quot;AutoM1&quot;, &quot;AutoM1&quot;)
+    bool(&quot;AutoSkills&quot;, &quot;AutoSkills&quot;)
+    bool(&quot;AutoBlock&quot;, &quot;AutoBlock&quot;)
+    bool(&quot;AntiAFK&quot;, &quot;AntiAFK&quot;)
+    num(&quot;YOffset&quot;, &quot;YOffset&quot;)
+    num(&quot;SkillDelay&quot;, &quot;SkillDelay&quot;)
+    num(&quot;PickupRange&quot;, &quot;PickupRange&quot;)
+    num(&quot;TargetFPS&quot;, &quot;FpsSlider&quot;)
+
+    if loaded.PositionMode == &quot;Above&quot; or loaded.PositionMode == &quot;Underneath&quot; then
+        uiElements.PositionMode(loaded.PositionMode)
+    end
+    if table.find(LOOT_MODES, loaded.LootMode) then
+        uiElements.LootMode(loaded.LootMode)
+    elseif loaded.AutoLoot == true then
+        uiElements.LootMode(&quot;Teleport&quot;)
+    end
+
+    if isType(loaded.ToggleKeybindName, &quot;string&quot;) and Enum.KeyCode[loaded.ToggleKeybindName] then
+        Config.ToggleKeybind = Enum.KeyCode[loaded.ToggleKeybindName]
+        KeybindBtn.Text = Config.ToggleKeybind.Name
+    end
+    if isType(loaded.SelectedBosses, &quot;table&quot;) then
+        for _, name in ipairs(MasterBossList) do
+            checkboxSetters[name](loaded.SelectedBosses[name] == true)
+        end
+    end
+    if isType(loaded.FPSCapEnabled, &quot;boolean&quot;) then
+        Config.FPSCapEnabled = loaded.FPSCapEnabled
+        applyFps()
+    end
+end
+
+local refreshConfigList
+refreshConfigList = function()
+    for _, child in ipairs(ConfigScroll:GetChildren()) do
+        if child:IsA(&quot;Frame&quot;) then child:Destroy() end
+    end
+
+    local files = {}
+    pcall(function()
+        if listfiles then files = listfiles(CONFIG_FOLDER) end
+    end)
+
+    for _, filePath in ipairs(files) do
+        local fileName = filePath:match(&quot;([^/\\]+)%.json$&quot;)
+        if fileName then
+            local item = Instance.new(&quot;Frame&quot;)
+            item.Size = UDim2.new(1, -10, 0, 32)
+            item.BackgroundColor3 = COLORS.item
+            item.Parent = ConfigScroll
+            corner(item, 5)
+            label(item, fileName, UDim2.new(0.5, 0, 1, 0), UDim2.new(0, 10, 0, 0), nil, 12, COLORS.bright)
+            local loadBtn = button(item, &quot;Load&quot;, UDim2.new(0.22, 0, 0, 22), UDim2.new(0.53, 0, 0.5, -11), Color3.fromRGB(60, 120, 200), 10)
+            local delBtn = button(item, &quot;Delete&quot;, UDim2.new(0.22, 0, 0, 22), UDim2.new(0.76, 0, 0.5, -11), Color3.fromRGB(180, 50, 50), 10)
+
+            connect(loadBtn.MouseButton1Click, function()
+                local ok, err = pcall(function()
+                    applyLoadedConfig(HttpService:JSONDecode(readfile(filePath)))
+                end)
+                setStatus(ok and (&quot;Loaded config: &quot; .. fileName) or &quot;Config failed to load&quot;)
+                if not ok then warn(&quot;[AutoFarm] &quot; .. tostring(err)) end
+            end)
+            connect(delBtn.MouseButton1Click, function()
+                pcall(function() if delfile then delfile(filePath) end end)
+                refreshConfigList()
+            end)
+        end
+    end
+end
+
+connect(SaveConfigBtn.MouseButton1Click, function()
+    local name = ConfigInput.Text:gsub(&quot;[^%w%-_ ]&quot;, &quot;&quot;):gsub(&quot;^%s+&quot;, &quot;&quot;):gsub(&quot;%s+$&quot;, &quot;&quot;)
+    if #name == 0 then setStatus(&quot;Enter a valid config name&quot;) return end
+    local data = {
+        AutoBoss = Config.AutoBoss, AutoChestEvent = Config.AutoChestEvent,
+        PositionMode = Config.PositionMode, YOffset = Config.YOffset,
+        AutoM1 = Config.AutoM1, AutoSkills = Config.AutoSkills, SkillDelay = Config.SkillDelay,
+        AutoBlock = Config.AutoBlock, LootMode = Config.LootMode, PickupRange = Config.PickupRange,
+        AntiAFK = Config.AntiAFK, TargetFPS = Config.TargetFPS, FPSCapEnabled = Config.FPSCapEnabled,
+        ToggleKeybindName = Config.ToggleKeybind.Name, SelectedBosses = Config.SelectedBosses,
+    }
+    local ok = pcall(function()
+        writefile(CONFIG_FOLDER .. &quot;/&quot; .. name .. &quot;.json&quot;, HttpService:JSONEncode(data))
+    end)
+    setStatus(ok and (&quot;Saved config: &quot; .. name) or &quot;Could not save config&quot;)
+    ConfigInput.Text = &quot;&quot;
+    refreshConfigList()
+end)
+
+refreshConfigList()
+applyFps()
+
+local KillContainer = Instance.new(&quot;Frame&quot;)
+KillContainer.Size = UDim2.new(1, 0, 1, 0)
+KillContainer.BackgroundColor3 = Color3.fromRGB(32, 24, 28)
+KillContainer.Parent = KillPage
+corner(KillContainer, 8)
+
+local killText = label(KillContainer, &quot;KILL SCRIPT stops all loops, disconnects every listener and removes the GUI.&quot;, UDim2.new(1, -20, 0, 60), UDim2.new(0, 10, 0, 20), nil, 12, Color3.fromRGB(240, 180, 180))
+killText.TextWrapped = true
+
+local KillScriptBtn = button(KillContainer, &quot;KILL SCRIPT&quot;, UDim2.new(0.8, 0, 0, 50), UDim2.new(0.1, 0, 0.5, -10), Color3.fromRGB(220, 40, 40), 16)
+corner(KillScriptBtn, 8)
+local killStroke = Instance.new(&quot;UIStroke&quot;)
+killStroke.Color = Color3.fromRGB(255, 100, 100)
+killStroke.Thickness = 2
+killStroke.Parent = KillScriptBtn
+
+local function terminateScript()
+    scriptRunning = false
+    Config.AutoBoss, Config.AutoM1, Config.AutoSkills = false, false, false
+    Config.AutoBlock, Config.AntiAFK, Config.LootMode = false, false, &quot;Off&quot;
+    clearTarget()
+    for _, c in ipairs(connections) do
+        pcall(function() c:Disconnect() end)
+    end
+    table.clear(connections)
+    table.clear(npcCache)
+    table.clear(promptCache)
+    table.clear(activeWorldChests)
+    if Config.FPSCapEnabled then setFpsLimit(0) end
+    ScreenGui:Destroy()
+    print(&quot;[AutoFarm] Script terminated and cleaned up.&quot;)
+end
+connect(KillScriptBtn.MouseButton1Click, terminateScript)
+
+connect(RunService.Stepped, function()
+    if scriptRunning and Config.AutoBoss and target.root and not isLooting and not isChestEventActive then
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetChildren()) do
+                if part:IsA(&quot;BasePart&quot;) then part.CanCollide = false end
+            end
+        end
+    end
+end)
+
+connect(RunService.Heartbeat, function()
+    if scriptRunning and Config.AutoBoss and targetValid() and not isLooting and not isChestEventActive and not isPlayerMoving then
+        local _, root = getChar()
+        if root then
+            local p = target.root.Position
+            local y = Config.PositionMode == &quot;Underneath&quot; and -Config.YOffset or Config.YOffset
+            root.CFrame = CFrame.new(p + Vector3.new(0, y, 0), p)
+            root.AssemblyLinearVelocity = Vector3.zero
+        end
+    end
+end)
+
+-- ATTACK LOOP
+task.spawn(function()
+    while scriptRunning do
+        task.wait(0.12)
+        if Config.AutoBoss and Config.AutoM1 and targetValid() and not isLooting and not isChestEventActive then
+            local char, _, hum = getChar()
+            if char then
+                local tool = char:FindFirstChildOfClass(&quot;Tool&quot;)
+                if not tool then
+                    local backpack = LocalPlayer:FindFirstChild(&quot;Backpack&quot;)
+                    tool = backpack and backpack:FindFirstChildOfClass(&quot;Tool&quot;)
+                    if tool then hum:EquipTool(tool) end
+                end
+                if tool and tool.Parent == char then tool:Activate() end
+
+                local cam = Workspace.CurrentCamera
+                if cam then
+                    local vp = cam.ViewportSize
+                    local pos = Vector2.new(vp.X / 2, vp.Y / 2)
+                    if MainFrame.Visible then
+                        local p, s = MainFrame.AbsolutePosition, MainFrame.AbsoluteSize
+                        if pos.X &gt; p.X and pos.X &lt; p.X + s.X and pos.Y &gt; p.Y and pos.Y &lt; p.Y + s.Y then
+                            pos = Vector2.new(vp.X - 60, vp.Y / 2)
+                        end
+                    end
+                    VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
+                    VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
+                end
+            end
+        end
+    end
+end)
+
+-- SKILLS LOOP
+task.spawn(function()
+    while scriptRunning do
+        task.wait(Config.SkillDelay)
+        if Config.AutoBoss and Config.AutoSkills and targetValid() and not isLooting and not isChestEventActive then
+            for _, keyCode in ipairs(SkillKeys) do
+                if not (scriptRunning and Config.AutoBoss and Config.AutoSkills and targetValid() and not isLooting and not isChestEventActive) then break end
+                VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+                task.wait(0.03)
+                VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+                task.wait(0.08)
+            end
+        end
+    end
+end)
+
+-- AUTO BLOCK LOOP
+task.spawn(function()
+    local blocking = false
+    while scriptRunning do
+        task.wait(0.15)
+        if Config.AutoBoss and Config.AutoBlock and targetValid() and not isLooting and not blocking and not isChestEventActive then
+            local attacking = false
+            pcall(function()
+                local animator = target.hum:FindFirstChildOfClass(&quot;Animator&quot;)
+                if animator then
+                    local tracks = animator:GetPlayingAnimationTracks()
+                    for i = 1, #tracks do
+                        if tracks[i].IsPlaying and tracks[i].Priority == Enum.AnimationPriority.Action then
+                            attacking = true
+                            break
+                        end
+                    end
+                end
+            end)
+            if attacking then
+                blocking = true
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                task.wait(0.35)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+                blocking = false
+            end
+        end
+    end
+end)
+
+print(&quot;[AutoFarm] Integrated script running successfully with anti-cheat friendly scouting logic.&quot;)</code></pre></div>
+</section>
+<footer><span>Folix · Script text is displayed as provided</span><span id="status">Ready to copy</span></footer>
+</main>
+<script>
+const scriptEl=document.getElementById('scriptText');
+const copyBtn=document.getElementById('copyBtn');
+const statusEl=document.getElementById('status');
+copyBtn.addEventListener('click',async()=>{
+  const text=scriptEl.textContent;
+  try{
+    await navigator.clipboard.writeText(text);
+    copyBtn.textContent='Copied!';
+    statusEl.textContent='Copied full script to clipboard';
+    setTimeout(()=>{copyBtn.textContent='Copy script';statusEl.textContent='Ready to copy'},1800);
+  }catch(e){
+    const range=document.createRange();range.selectNodeContents(scriptEl);
+    const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+    statusEl.textContent='Text selected — press Ctrl+C to copy';
+  }
+});
+document.getElementById('selectBtn').addEventListener('click',()=>{
+  const range=document.createRange();range.selectNodeContents(scriptEl);
+  const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+  statusEl.textContent='Full script selected — press Ctrl+C to copy';
+});
+</script>
+</body>
+</html>
